@@ -1,0 +1,617 @@
+# =========================
+# ИМПОРТЫ БИБЛИОТЕК
+# =========================
+import sys
+import telebot
+import random
+from random import choice
+
+
+# =========================
+# ТОКЕН НАШЕГО БОТА
+# =========================
+bot = telebot.TeleBot('7886179441:AAEwrtebuKeFBBQagQ5BLRKnHFSUdw3Ha60')
+
+# =========================
+# СПИСОК СЛОВ ДЛЯ ИГРЫ В "УГАДАЙ СЛОВО"
+# =========================
+words = [
+    'автомат', 'баран', 'вода', 'груша', 'дом', 'ежик', 'жираф', 'зебра',
+    'иглу', 'йогурт', 'капуста', 'лимон', 'мед', 'нота', 'огурец', 'птица',
+    'радуга', 'собака', 'томат', 'улитка', 'фонарь', 'цирк', 'чашка', 'шарик',
+    'щука', 'яблоко', 'юг', 'яйцо', 'ананас', 'библиотека', 'ваза', 'гранат',
+    'дракон', 'ежевика', 'журнал', 'звезд', 'роналду', 'книга', 'мир', 'ноутбук',
+    'овощ', 'песок', 'рамка', 'самолет', 'творог', 'учебник', 'фрукты', 'хлеб',
+    'цена', 'школа', 'щенок', 'абрикос', 'банк', 'вилка', 'гитара', 'дверь',
+    'месси', 'жена', 'знак', 'ключ', 'мышь', 'неделя', 'облако', 'пулемет',
+    'размышление', 'слон', 'топор', 'флаг', 'царь', 'шум', 'яма', 'агент',
+    'бокс', 'восход', 'гриб', 'доска', 'ежевичный', 'жизнь', 'замок', 'катер',
+    'лошадь', 'мост', 'нейрон', 'обычай', 'праздник', 'река', 'свет', 'город',
+    'тропа', 'фильм', 'цветок', 'шафран', 'щипцы', 'спецназ', 'космос', 'собр',
+    'рюкзак', 'план', 'словарь', 'блокнот', 'футбол', 'жареный', 'школа',
+    'бензин', 'пресса', 'облако', 'фотограф', 'клубника', 'мышление', 'шум',
+    'квадрат', 'авокадо', 'барьер', 'вишня', 'гладкий', 'досужий', 'екватор',
+    'жар', 'закуска', 'ликер', 'мойка', 'нимфея', 'отпуск', 'перемена',
+    'развлечение', 'сигнал', 'табурет', 'тикток', 'узел', 'фотография', 'черешня',
+    'шатер', 'штанга', 'ягода', 'айсберг', 'библиотекарь', 'лехич', 'гольф',
+    'детский', 'единица', 'жгут', 'завтрак', 'истина', 'карандаш', 'лабиринт',
+    'магазин', 'некролог', 'огонь', 'пуля', 'рисунок', 'судьба', 'творчество',
+    'укроп', 'флора', 'химия', 'цоколь', 'чайник', 'ювелир', 'якорь', 'космос'
+]
+
+
+# Словари
+current_game = {}
+current_word = {}
+user_status = {}
+
+
+id_Группа = 0
+id_Вова = 0
+id_Лёха = 0
+id_Некит = 0
+id_Артём = 0
+id_Гриня = 0
+id_Андрей = 0
+
+
+# =========================
+# ПОЛУЧЕНИЕ СВОЕГО ID ТЕЛЕГРАМА
+# =========================
+@bot.message_handler(commands=['id'])
+def id(message):
+    id = message.from_user.id
+    bot.send_message(message.chat.id, id)
+
+
+# =========================
+# ПОЛУЧЕНИЕ ID НАШЕЙ ГРУППЫ ТЕЛЕГРАМА
+# =========================
+@bot.message_handler(commands=['group_id'])
+def group_id(message):
+    bot.reply_to(message, message.chat.id)
+
+
+# =========================
+# ВЫКЛЮЧЕНИЕ РАБОТЫ БОТА
+# =========================
+@bot.message_handler(commands=['stop_bot'])
+def stop_bot(message):
+    bot.send_message(message.chat.id, 'Ваш бот💤...')
+    bot.stop_polling()
+    sys.exit(0)
+
+
+# =========================
+# ВЫЗОВ ИГРЫ В СЛОВА
+# =========================
+@bot.message_handler(commands=['play_слова'])
+def play_game(message):
+    user_status[message.chat.id] = 'playing'
+    if message.chat.id not in current_game:
+        word = random.choice(words)
+        current_word[message.chat.id] = word.lower()
+        current_game[message.chat.id] = {
+            'попытки': [],
+            'оставшиеся_попытки': 10
+        }
+        bot.send_message(message.chat.id, 'Игра началась! Угадйте буквы в слове. У вас есть 10 попыток.')
+        bot.send_message(message.chat.id, 'Загаданное слово: ' + ''.join(['_ ' for _ in word]))
+    else:
+        bot.send_message(message.chat.id, 'Игра уже идет! Используйте /exit_слова для выхода.')
+
+
+# =========================
+# ПЕРЕЗАПУСК ИГРЫ В СЛОВА
+# =========================
+@bot.message_handler(commands=['restart_слова'])
+def restart_game(message):
+    if message.chat.id in user_status and user_status[message.chat.id] == 'playing':
+        exit_game(message)
+    else:
+        bot.send_message(message.chat.id, 'Вы не можете перезапустить игру, так как не находитесь в игре')
+        return
+
+    user_status[message.chat.id] = 'playing'
+    play_game(message)
+
+
+# =========================
+# ВЫХОД ИЗ ИГРЫ В СЛОВА
+# =========================
+@bot.message_handler(commands=['exit_слова'])
+def exit_game(message):
+    if message.chat.id in current_game:
+        del current_game[message.chat.id]
+        del current_word[message.chat.id]
+        bot.send_message(message.chat.id, 'Игра завершена. Спасибо за игру!')
+    else:
+        bot.send_message(message.chat.id, 'Вы еще не начали играть. Используйте /play_слова, чтобы начать.')
+
+
+# Игровые данные
+games = {}
+
+
+# Функция для создния колоды карт
+def create_deck():
+    suits = ['♠️', '♥️', '♦️', '♣️']
+    values = [('2', 2), ('3', 3), ('4', 4), ('5', 5), ('6', 6),
+              ('7', 7), ('8', 8), ('9', 9), ('10', 10),
+              ('J', 10), ('Q', 10), ('K', 10), ('A', 11)]
+    deck = [(value[0], suit) for value in values for suit in suits]
+    random.shuffle(deck)  # shuffle - перемешивание элементов
+    return deck
+
+
+# Функция для подсчета очков
+def calculate_points(hand):
+    points = sum(card[1] for card in hand)
+    aces = sum(1 for card in hand if card[0] == 'A')
+    while points > 21 and aces:
+        points -= 10
+        aces -= 1
+    return points
+
+
+# =========================
+# ИГРА В ОЧКО
+# =========================
+@bot.message_handler(commands=['play_очко'])
+def start_game(message):
+    user_id = message.from_user.id
+    if user_id in games:
+        bot.reply_to(message, 'Вы уже играете в игру. Используйте /exit_очко для выхода.')
+    else:
+        games[user_id] = {
+            'deck': create_deck(),
+            'player_hand': [],
+            'dealer_hand': [],
+            'name': 'Игрок'
+        }
+        for _ in range(2):
+            games[user_id]['player_hand'].append(games[user_id]['deck'].pop())
+            games[user_id]['dealer_hand'].append(games[user_id]['deck'].pop())
+        bot.reply_to(message,
+                     f'Игра началась, {games[user_id]['name']}! Ваши карты: {games[user_id]['player_hand']}. \n Дилер: {games[user_id]['dealer_hand'][0]} и скрытая карта.')
+
+
+# =========================
+# ДОБАВИТЬ КАРТУ
+# =========================
+@bot.message_handler(commands=['hit_очко'])
+def player_hit(message):
+    user_id = message.from_user.id
+    if user_id in games:
+        games[user_id]['player_hand'].append(games[user_id]['deck'].pop())
+        player_points = calculate_points(games[user_id]['player_hand'])
+        bot.reply_to(message,
+                     f'Вы взяли новую карту: {games[user_id]['player_hand']}. У вас теперь {player_points} очков.')
+        if player_points > 21:
+            bot.reply_to(message, 'Вы превысили 21! Дилер выиграл. Используйте /exit_очко для выхода.')
+            del games[user_id]
+    else:
+        bot.reply_to(message, 'Вы еще не начали игру. Используйте /play_очко для начала.')
+
+
+# =========================
+# ПРОПУСК ХОДА
+# =========================
+@bot.message_handler(commands=['stand_очко'])
+def player_stand(message):
+    user_id = message.from_user.id
+    if user_id in games:
+        dealer_points = calculate_points(games[user_id]['dealer_hand'])
+        while dealer_points < 17:
+            games[user_id]['dealer_hand'].append(games[user_id]['deck'].pop())
+            dealer_points = calculate_points(games[user_id]['dealer_hand'])
+
+        player_points = calculate_points(games[user_id]['player_hand'])
+        bot.reply_to(message,
+                     f'Ваши карты: {games[user_id]['player_hand']} ({player_points} очков).\nКарты дилера: {games[user_id]['dealer_hand']} ({dealer_points} очков).')
+
+        if dealer_points > 21 or player_points > dealer_points:
+            bot.reply_to(message, f'Поздравляем, {games[user_id]['name']}, вы выиграли!')
+        elif player_points < dealer_points:
+            bot.reply_to(message, 'Дилер выиграл, увы!')
+        else:
+            bot.reply_to(message, 'Ничья!')
+
+        del games[user_id]
+    else:
+        bot.reply_to(message, 'Вы еще не начали игру. Используйте /play_очко для начала.')
+
+
+# =========================
+# ВЫЙТИ
+# =========================
+@bot.message_handler(commands=['exit_очко'])
+def exit_game(message):
+    user_id = message.from_user.id
+    if user_id in games:
+        del games[user_id]
+        bot.reply_to(message, 'Вы вышли из игры, с полным позором. Надеюсь, вы вернетесь снова!')
+    else:
+        bot.reply_to(message, 'Вы не играете в игру в данный момент.')
+
+
+# =========================
+# ПОМЕНЯТЬ ИМЯ ИГРОКА
+# =========================
+@bot.message_handler(commands=['set_name_очко'])
+def set_name(message):
+    user_id = message.from_user.id
+    name = message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else ''
+    if user_id in games:
+        games[user_id]['name'] = name if name else 'Игрок'
+        bot.reply_to(message, f'Ваше имя было обновлено на: {games[user_id]['name']}.')
+    else:
+        bot.reply_to(message, 'Сначала начните игру с помощью команды /play_очко.')
+
+
+# =========================
+# ИНФОРМАЦИЯ ПО ИГРЕ В ОЧКО
+# =========================
+@bot.message_handler(commands=['очко'])
+def default_response(message):
+    bot.reply_to(message,
+                 'Используйте команды: /play_очко - начало игры в очко, /hit_очко - добавить карту, /stand_очко - пропуск хода, /exit_очко - выйти с позором, /set_name_очко - сменить имя.')
+
+
+# =========================
+# КОМАНДА ДЛЯ ВЫВОДА ВСЕХ КОМАНД
+# =========================
+@bot.message_handler(commands=['help'])
+def start(message):
+    spis_command = ['/язык_on\n/язык_off',
+                    '/id - узнать свой айди',
+                    '/group_id - id нашей группы',
+                    '/stop_bot - выключение работы бота',
+                    '/play_слова - играть в слова\n/restart_слова - начать заново в слова\n/exit_слова - выйти из игры',
+                    '/очко - очко\n/play_очко - игра\n/hit_очко - добавить карту\n/stand_очко - пропуск хода\n/exit_очко - выйти с позором\n/set_name_очко - смена имени',
+                    '/шифратор_on\n/шифратор_off\n/дешифратор_on\n/дешифратор_off',
+                    '/предсказание_on\n/предсказание_off'
+                    ]
+    for command in range(len(spis_command)):
+        bot.send_message(message.chat.id, spis_command[command])
+
+
+is_шифратор = False  # Флаг
+is_дешифратор = False  # Флаг
+
+
+# =========================
+# ВКЛ / ВЫКЛ - РЕЖИМ ШИФРАТОР
+# =========================
+@bot.message_handler(commands=['шифратор_on'])
+def шифратор_on(_):
+    global is_шифратор
+    is_шифратор = True
+
+
+@bot.message_handler(commands=['шифратор_off'])
+def шифратор_off(_):
+    global is_шифратор
+    is_шифратор = False
+
+
+# =========================
+# ВКЛ / ВЫКЛ - РЕЖИМ ДЕШИФРАТОР
+# =========================
+@bot.message_handler(commands=['дешифратор_on'])
+def дешифратор_on(_):
+    global is_дешифратор
+    is_дешифратор = True
+
+
+@bot.message_handler(commands=['дешифратор_off'])
+def дешифратор_off(_):
+    global is_дешифратор
+    is_дешифратор = False
+
+
+# =========================
+# СПИСОК ОТВЕТОВ ДЛЯ ПРЕДСКАЗАНИЙ
+# =========================
+answers = ['Бесспорно', 'Предрешено', 'Никаких сомнений', 'Определённо да', 'Можешь быть уверен в этом',
+           'Мне кажется - да', 'Вероятнее всего', 'Хорошие перспективы', 'Знаки говорят - да', 'да',
+           'Пока неясно, попробуй снова', 'Спроси позже', 'Лучше не рассказывать', 'Сейчас нельзя предсказать',
+           'Сконцентрируйся и спроси опять', 'Даже не думай', 'Мой ответ - нет', 'По моим данным - нет',
+           'Перспективы не очень хорошие', 'Весьма сомнительно']
+
+# =========================
+# ВКЛ / ВЫКЛ - РЕЖИМ ПРЕДСКАЗАНИЙ
+# =========================
+user_states = {}  # Словарь для хранения состояния каждого пользователя
+предсказание = False  # Флаг
+
+
+@bot.message_handler(commands=['предсказание_on'])
+def предсказание_on(message):
+    global предсказание
+    предсказание = True
+    bot.send_message(message.chat.id,
+                     'Привет, я магический шар, и я знаю ответ на любой твой вопрос.\n\nКак тебя звать?')
+    user_states[message.chat.id] = {'step': 'waiting_name'}
+
+
+@bot.message_handler(commands=['предсказание_off'])
+def предсказание_off(message):
+    global предсказание
+    предсказание = False
+    bot.send_message(message.chat.id,
+                     'Магический шар остановлен.')
+
+
+# =========================
+# ВКЛ / ВЫКЛ - РЕЖИМ ПОДБОРА ЯЗЫКА ПРОГРАММИРОВАНИЯ
+# =========================
+user_states2 = {}  # Словарь для хранения состояния каждого пользователя
+язык = False  # Флаг
+
+
+@bot.message_handler(commands=['язык_off'])
+def язык_off(message):
+    global язык
+    язык = False
+    bot.send_message(message.chat.id, 'Программа "Подбор подходящего Языка Программирования" выключена')
+
+
+@bot.message_handler(commands=['язык_on'])
+def язык(message):
+    global язык
+    язык = True
+    chat_id = message.chat.id
+    user_states2[chat_id] = {'step': 'start'}
+    bot.send_message(message.chat.id,
+                     'Добро пожаловать в программу, которая определит, какой язык программирования тебе подходит больше всего!\n\nХотите много зарабатывать? (д/н)')
+
+
+@bot.message_handler(func=lambda message: message.chat.id in current_game)
+def guess_letter(message):
+    word = current_word[message.chat.id]
+    game_info = current_game[message.chat.id]
+
+    guessed_letter = message.text.lower()
+
+    if len(guessed_letter) == 1 and guessed_letter.isalpha():
+        if guessed_letter in game_info['попытки']:
+            bot.send_message(message.chat.id, f'Вы уже называли букву {guessed_letter}!')
+        else:
+            game_info['попытки'].append(guessed_letter)
+            game_info['оставшиеся_попытки'] -= 1
+
+            if guessed_letter in word:
+                for i in range(len(word)):
+                    if word[i] == guessed_letter:
+                        bot.send_message(message.chat.id, f'Буква нашлась на месте: {i + 1}')
+
+                current_state = ''.join([letter if letter in game_info['попытки'] else '_' for letter in word])
+                bot.send_message(message.chat.id, 'Текущее состояние: ' + current_state)
+
+                if '_' not in current_state:
+                    bot.send_message(message.chat.id, f'Поздравляем! Вы угадали слово: {word}')
+                    del current_game[message.chat.id]
+                    del current_word[message.chat.id]
+            else:
+                bot.send_message(message.chat.id,
+                                 f'Неправильная буква: {guessed_letter}. Осталось попыток: {game_info['оставшиеся_попытки']}')
+
+                if game_info['оставшиеся_попытки'] == 0:
+                    bot.send_message(message.chat.id, f'Вы проиграли! Загаданное слово было: {word}')
+                    del current_game[message.chat.id]
+                    del current_word[message.chat.id]
+    else:
+        bot.send_message(message.chat.id, 'Пожалуйста, вводите только одну букву.')
+
+
+
+@bot.message_handler(func=lambda message: is_шифратор)  # Шифратор молодёжного сленга
+def молодежь(message):
+    a = message.text.split()
+    s = [i for i in a]
+    for i in s:
+        b = i[1:] + i[0]
+        b += 'ки'
+        bot.reply_to(message, b)
+
+
+@bot.message_handler(func=lambda message: is_дешифратор)  # Дешифратор молодёжного сленга
+def молодежь(message):
+    a = message.text.split()
+    s = [i for i in a]
+    for i in s:
+        b = i[1:] + i[0]
+        b += 'ки'
+    s = [i[-3] + i[:-3] for i in a]
+    bot.reply_to(message, *s)
+
+
+@bot.message_handler(func=lambda message: предсказание)
+def handle_message(message):
+    chat_id = message.chat.id
+    user_state = user_states.get(chat_id)
+
+    if user_state is None:
+        user_states[chat_id] = {'step': 'waiting_name'}
+        return
+
+    if user_state['step'] == 'waiting_name':
+        name = message.text
+        bot.send_message(chat_id, f'Привет, {name})')
+        user_states[chat_id]['step'] = 'waiting_question'
+        bot.send_message(chat_id, 'Введи запрос: ')
+    elif user_state['step'] == 'waiting_question':
+        question = message.text
+        bot.send_message(chat_id, choice(answers))
+        user_states[chat_id]['step'] = 'waiting_continue'
+        bot.send_message(chat_id, 'Продолжить? (да/нет)')
+    elif user_state['step'] == 'waiting_continue':
+        answer = message.text.lower()
+        if answer == 'да'.lower():
+            user_states[chat_id]['step'] = 'waiting_question'
+            bot.send_message(chat_id, 'Введи запрос: ')
+        else:
+            bot.send_message(chat_id, 'Ну и иди')
+            del user_states[chat_id]  # Удаляем пользователя из состояния
+
+
+@bot.message_handler(func=lambda message: язык)
+def выбор_языка(message):
+    chat_id = message.chat.id
+    user_state = user_states2.get(chat_id)
+
+    if user_state is None:
+        return
+
+    step = user_state['step']
+    text = message.text.lower()
+
+    if step == 'start':
+        if text == 'н':
+            bot.send_message(chat_id, 'Delphi')
+            del user_states2[chat_id]
+        elif text == 'д':
+            user_states2[chat_id]['step'] = 'question_b'
+            bot.send_message(chat_id, 'Вы тупой? (д/н)')
+        else:
+            bot.send_message(chat_id, 'Пожалуйста, ответьте (д/н).')
+
+    elif step == 'question_b':
+        if text == 'н':
+            user_states2[chat_id]['step'] = 'question_c'
+            bot.send_message(chat_id, 'Вы инженер? (д/н)')
+        elif text == 'д':
+            user_states2[chat_id]['step'] = 'question_g'
+            bot.send_message(chat_id, 'Очень? (д/н)')
+        else:
+            bot.send_message(chat_id, 'Пожалуйста, ответьте (д/н).')
+    elif step == 'question_c':
+        if text == 'н':
+            user_states2[chat_id]['step'] = 'question_d'
+            bot.send_message(chat_id, 'У вас есть ноги? (д/н)')
+        elif text == 'д':
+            user_states2[chat_id]['step'] = 'question_f'
+            bot.send_message(chat_id, 'Вам больше 50? (д/н)')
+        else:
+            bot.send_message(chat_id, 'Пожалуйста, ответьте (д/н).')
+
+    elif step == 'question_d':
+        if text == 'н':
+            bot.send_message(chat_id, 'C')
+            del user_states2[chat_id]
+        elif text == 'д':
+            user_states2[chat_id]['step'] = 'question_e'
+            bot.send_message(chat_id, 'А они вам нужны? (д/н)')
+        else:
+            bot.send_message(chat_id, 'Пожалуйста, ответьте (д/н).')
+    elif step == 'question_e':
+        if text == 'н':
+            bot.send_message(chat_id, 'C++')
+        elif text == 'д':
+            bot.send_message(chat_id, 'Java')
+        else:
+            bot.send_message(chat_id, 'Пожалуйста, ответьте (д/н).')
+        del user_states2[chat_id]
+
+    elif step == 'question_f':
+        if text == 'н':
+            bot.send_message(chat_id, 'MatLab')
+        elif text == 'д':
+            bot.send_message(chat_id, 'Fortran')
+        else:
+            bot.send_message(chat_id, 'Пожалуйста, ответьте (д/н).')
+        del user_states2[chat_id]
+
+    elif step == 'question_g':
+        if text == 'н':
+            user_states2[chat_id]['step'] = 'question_h'
+            bot.send_message(chat_id, 'Вы насмотрелись уроков ХАУДИ ХО? (д/н)')
+        elif text == 'д':
+            user_states2[chat_id]['step'] = 'question_l'
+            bot.send_message(chat_id, 'У вас есть друзья? (д/н)')
+        else:
+            bot.send_message(chat_id, 'Пожалуйста, ответьте (д/н).')
+    elif step == 'question_h':
+        if text == 'н':
+            user_states2[chat_id]['step'] = 'question_j'
+            bot.send_message(chat_id, 'Вам нравится Windows? (д/н)')
+        elif text == 'д':
+            bot.send_message(chat_id, 'Python')
+            del user_states2[chat_id]
+        else:
+            bot.send_message(chat_id, 'Пожалуйста, ответьте (д/н).')
+    elif step == 'question_j':
+        if text == 'н':
+            user_states2[chat_id]['step'] = 'question_k'
+            bot.send_message(chat_id, 'Вы пи**р? (д/н)')
+        elif text == 'д':
+            bot.send_message(chat_id, 'C#')
+            del user_states2[chat_id]
+        else:
+            bot.send_message(chat_id, 'Пожалуйста, ответьте (д/н).')
+
+    elif step == 'question_k':
+        if text == 'н':
+            bot.send_message(chat_id, 'Perl')
+        elif text == 'д':
+            bot.send_message(chat_id, 'Swift')
+        else:
+            bot.send_message(chat_id, 'Пожалуйста, ответьте (д/н).')
+        del user_states2[chat_id]
+    elif step == 'question_l':
+        if text == 'н':
+            bot.send_message(chat_id, 'PHP')
+            del user_states2[chat_id]
+        elif text == 'д':
+            user_states2[chat_id]['step'] = 'question_m'
+            bot.send_message(chat_id, 'Они тоже тупые? (д/н)')
+        else:
+            bot.send_message(chat_id, 'Пожалуйста, ответьте (д/н).')
+    elif step == 'question_m':
+        if text == 'н':
+            bot.send_message(chat_id, 'Rudy')
+        elif text == 'д':
+            bot.send_message(chat_id, 'JavaScript')
+        else:
+            bot.send_message(chat_id, 'Пожалуйста, ответьте (д/н).')
+        del user_states2[chat_id]
+
+
+
+# ========================
+# ЗАПУСК БОТА
+# ========================
+if __name__ == '__main__':
+    print('🦾 Бот работает...')
+    bot.polling(none_stop=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
