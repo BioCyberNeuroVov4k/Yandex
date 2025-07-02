@@ -1,0 +1,10 @@
+import json
+
+with open(r'C:\Users\User\Desktop\Файлы Для Python\Alphabet.json') as кодировка:
+    keys=json.load(кодировка)
+
+with open(r'C:\Users\User\Desktop\Файлы Для Python\Abracadabra__1_.txt') as раскодирование:
+    s=раскодирование.read().strip()
+
+for i in s:
+    print(keys.setdefault(i,i), end='')
