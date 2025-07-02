@@ -1,0 +1,21 @@
+import json
+
+dic={}
+
+with open(r'C:\Users\User\Desktop\Файлы Для Python\manager_sales.json') as file:
+    for k in json.load(file):
+        dic[k['manager']['first_name']+ ' ' +k['manager']
+        ['last_name']] = sum([i['price'] for i in k['cars']])
+
+print(*sorted(dic.items()))
+
+dic={}
+
+with open(r'C:\Users\User\Desktop\Файлы Для Python\group_people.json') as file:
+    for item in json.load(file):
+        count=0
+        for female in item['people']:
+            if female['gender']=='Female' and female['year']>1977:
+                count+=1
+        dic[item['id_group']]=count
+print(*sorted(dic.items())) #в 9 группе 10 женщин
